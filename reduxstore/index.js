@@ -1,8 +1,9 @@
 import { createStore, combineReducers } from 'redux';
 
-import photos from './photos.js';
+import selectedPhoto from './photos.js';
 
-let reducers = combineReducers({ photos });
+// THIS is the place where you name the sections of state... so state will end up with selectedPhoto.whateverelse gets named in photos.js
+let reducers = combineReducers({ selectedPhoto });
 
 let store = () => {
   return createStore(reducers);

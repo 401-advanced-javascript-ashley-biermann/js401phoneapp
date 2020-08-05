@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Alert, BackHandler, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 import * as ImagePicker from 'expo-image-picker';
+import * as Sharing from 'expo-sharing';
+
 
 // opt in to the redux store
 import { connect } from 'react-redux';
@@ -10,15 +13,38 @@ import { pickPhoto } from '../reduxstore/photos.js';
 
 
 const Main = props => {
-  console.log('props from Main', props);
+
+  // TODO: This will currently just exit the app if user presses back, but it does ask them first, and could be modified to use state to store the previous 'page'
+
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert("Oops!", "This will exit the app, did you mean to quit?", [
+        {
+          text: "Cancel",
+          onPress: () => null,
+          style: "cancel"
+        },
+        // do something there other than exit the app
+        { text: "YES", onPress: () => BackHandler.exitApp() }
+      ]);
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, []);
+
+
 
 
   // selected photo
   let { selectedPhoto } = props;
-  console.log('selectedPhoto', selectedPhoto);
 
   // function to let user choose a photo and set it to state
-
   let openImagePickerAsync = async () => {
 
     // check for permissions....
@@ -31,55 +57,55 @@ const Main = props => {
 
     // permissions granted!
     let pickerResult = await ImagePicker.launchImageLibraryAsync();
-    // console.log('picker result.uri', pickerResult.uri);
 
     if (pickerResult.cancelled === true) {
       return;
     }
 
-    // set state
-    console.log('props inside of openImagePickerAsync', props);
-
+    // set state in the store
     props.pickPhoto(pickerResult.uri);
   };
-
 
 
 
   // function that, onPress, will open a variety of ways for uses to share photo
   let openShareDialogAsync = async () => {
 
-    // check for ability to share
+    // check for ability/permission? to share
     if (!(await Sharing.isAvailableAsync())) {
       alert(`Uh oh, sharing isn't available on your platform`);
       return;
     }
 
-    await Sharing.shareAsync(selectedPhoto.localUri);
+    await Sharing.shareAsync(selectedPhoto.selectedPhoto);
   };
-
 
 
   // once image is selected, display this
   if (selectedPhoto !== null) {
+    let imageUri = props.selectedPhoto.selectedPhoto;
+    console.log('imageUri', typeof imageUri, imageUri);
     return (
       <View style={styles.container}>
         <Image
-          source={{ uri: selectedPhoto.localUri }}
+          source={{ uri: imageUri }}
           style={styles.thumbnail}
         />
         <TouchableOpacity onPress={openShareDialogAsync} style={styles.button}>
           <Text style={styles.buttonText}>Share this photo</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+        onPress={openImagePickerAsync}
+        style={styles.button}>
+        <Text style={styles.buttonText}>Choose Different</Text>
+      </TouchableOpacity>
+
       </View>
     );
   }
 
-
-
-
   return (
-
     <View style={styles.container}>
 
       <Image source={{ uri: 'https://images.unsplash.com/photo-1510771463146-e89e6e86560e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=564&q=80' }} style={styles.logo} />
@@ -100,6 +126,7 @@ const Main = props => {
 
 // get the global state stuff that I want and apply ('map') it to my props
 const mapStateToProps = state => {
+  // console.log('state', state);
   return {
     selectedPhoto: state.selectedPhoto,
   }
@@ -136,11 +163,24 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "purple",
+    margin: 10,
     padding: 20,
     borderRadius: 5,
   },
   buttonText: {
     fontSize: 20,
     color: '#fff',
+  }, 
+  thumbnail: {
+    margin: 20,
+    width: 300,
+    height: 300, 
+  },
+  // TODO: MOve this with header
+  header: {
+    color: '#888',
+    fontSize: 18,
+    marginHorizontal: 15,
+    marginBottom: 10,
   }
 });
